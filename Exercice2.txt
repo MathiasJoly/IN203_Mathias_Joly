@@ -1,0 +1,36 @@
+ENVOI BLOQUANT ET NON BLOQUANT
+
+
+Envoi bloquant:
+
+myvar = 0;
+for ( i = 1; i < numtasks , ++i ) {
+task = i;
+MPI_Send (& myvar ,... ,... , task ,...);
+myvar = myvar + 2;
+// Do some works
+...
+...
+}
+
+Sûr, 
+car on utilise la fonction "MPI_Send" qui effectue un envoi bloquant 
+(qui empêche de modifier des données avant qu'elles ne soit reçues)
+
+
+Envoi non bloquant:
+
+myvar = 0;
+for ( i = 1; i < numtasks , ++i ) {
+task = i;
+MPI_ISend (& myvar ,... ,... , task ,...);
+myvar = myvar + 2;
+// Do some works
+...
+MPI_Wait (...);
+}
+
+Dangereux, 
+car on utilise la fonction "MPI_ISend" qui effectue un envoi non bloquant
+la fonction MPI_Wait(...) devrait se trouver juste après le MPI_ISend 
+pour s'assurer que le buffer d'application ne soit pas modifié avant que l'envoi ne soit effectué
