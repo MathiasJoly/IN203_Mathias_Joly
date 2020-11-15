@@ -18,19 +18,11 @@ int main(int argc , char *argv [])
 	prev = rank -1;
 	next = rank +1;
 	if (rank == ( nbp - 1)) next = 0;
-	if (rank == 0) 
-	{
-		prev = nbp - 1;
-		jeton = 10;
-		MPI_Send (&jeton , 1, MPI_INT , next , tag , MPI_COMM_WORLD );
-		MPI_Recv (&jeton, 1, MPI_INT , prev , tag , MPI_COMM_WORLD, &stats);
-	}
-	else
-	{
-		MPI_Recv (&jeton , 1, MPI_INT , prev , tag , MPI_COMM_WORLD , &stats);
-		jeton += 1 ;
-		MPI_Send (&jeton , 1, MPI_INT , next , tag , MPI_COMM_WORLD );
-	};
+	if (rank == 0) prev = nbp-1;
+	jeton = rank*10;
+	MPI_Send (&jeton , 1, MPI_INT , next , tag , MPI_COMM_WORLD );
+	MPI_Recv (&jeton , 1, MPI_INT , prev , tag , MPI_COMM_WORLD , &stats);
+	jeton += 1 ;
 	std::cout << "tache n° " << rank << ", jeton = " << jeton << "." << std::endl;
 	MPI_Finalize ();
 	return EXIT_SUCCESS;
