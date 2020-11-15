@@ -5,78 +5,54 @@
 # include <fstream>
 # include <stdio.h>
 
+// pour récupérer la dimension (d) du plus grand hypercube possible :
+int logarithme2 (int nbp)
+{
+	int d = 0;
+	int n = 1; //n = 2^d
+	while (n<nbp)
+	{
+		d += 1;
+		n *= 2;
+	};
+	if (n>nbp)
+	{
+		d = d-1;
+		n = n/2;
+	};
+	return d;	
+};
+
 int main(int argc , char *argv []) 
 {
 	int nbp , rank, tag=1 , jeton;
 	MPI_Status stats;
 	
 	MPI_Init (& argc ,& argv);
-	MPI_Comm_size ( MPI_COMM_WORLD , &nbp ); //nbp=8
+	MPI_Comm_size ( MPI_COMM_WORLD , &nbp );
 	MPI_Comm_rank ( MPI_COMM_WORLD , &rank);
 	
-	if (rank == 0)
-	{
-		jeton = 6;
-		MPI_Send (&jeton, 1, MPI_INT, 1, 1, MPI_COMM_WORLD);
-		MPI_Send (&jeton, 1, MPI_INT, 2, 2, MPI_COMM_WORLD);
-		MPI_Send (&jeton, 1, MPI_INT, 4, 4, MPI_COMM_WORLD);
-		// dest = 2^0, 2^1, 2^2
-		// tag = dest
-	}
-	else if (rank == 1)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 0, 1 , MPI_COMM_WORLD, &stats);
-		// source = 0 car 1 est une puissance de 2
-		// tag = rank
-		MPI_Send (&jeton, 1, MPI_INT, 3, 3 , MPI_COMM_WORLD);
-		MPI_Send (&jeton, 1, MPI_INT, 5, 5 , MPI_COMM_WORLD);
-		// dest = 2^1 + 1, 2^2 + 1
-		// tag = dest
-	}
-	else if (rank == 2)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 0, 2 , MPI_COMM_WORLD, &stats);
-		// source = 0 car 2 est une puissance de 2
-		// tag = rank
-		MPI_Send (&jeton, 1, MPI_INT, 6, 6 , MPI_COMM_WORLD);
-		// dest = 2^2 + 2
-		// tag = dest
-	}
-	else if (rank == 3)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 1, 3 , MPI_COMM_WORLD, &stats);
-		// source = 1 car 3 = 2^1 + 1
-		// tag = rank
-		MPI_Send (&jeton, 1, MPI_INT, 7, 7 , MPI_COMM_WORLD);
-		// dest = 2^2 + 3
-		// tag = dest
-	}
-	else if (rank == 4)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 0, 4 , MPI_COMM_WORLD, &stats);
-		// source = 0 car 4 est une puissance de 2
-		// tag = rank
-	}
-	else if (rank == 5)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 1, 5 , MPI_COMM_WORLD, &stats);
-		// source = 1 car 5 = 2^2 + 1
-		// tag = rank
-	}
-	else if (rank == 6)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 2, 6 , MPI_COMM_WORLD, &stats);
-		// source = 2 car 6 = 2^2 + 2
-		// tag = rank
-	}
-	else if (rank == 7)
-	{
-		MPI_Recv (&jeton, 1, MPI_INT, 3, 7 , MPI_COMM_WORLD, &stats);
-		// source = 3 car 7 = 2^2 + 3
-		// tag = rank
-	};
+	int d = logarithme2(nbp) ; // 2^d <= nbp
 
-	std::cout << "tache n° " << rank << ", jeton = " << jeton << "." << std::endl;
+	if (rank == 0) jeton = 6 ; // création hypercube de dimension 0
+
+	int m=1; // m = 2^0
+	int source,dest;
+	for (int i=0; i<d; i++)
+	{
+		// passage de l'hypercube de dimension i à l'hypercube de dimension i+1 (m = 2^i) :
+		// pour chaque tache de rang2 >= m, il y a une tache de rang1 < m qui lui envoit le jeton
+		dest = rank + m ; // rang2 (dest) = rang1 + m
+		if (rank < m) MPI_Send (&jeton, 1, MPI_INT, dest, dest, MPI_COMM_WORLD); 
+		// la tache de rang < m envoit un message à la destination
+		source = rank - m ; // rang1 (source) = rang2 - m
+		if (rank < 2*m && rank >= m) MPI_Recv (&jeton, 1, MPI_INT, source, rank , MPI_COMM_WORLD, &stats);
+		// la tache de rang >= m recoit un message de la source 
+		m = m*2 ;  // m = 2^(i+1)			
+	};		
+
+	if (rank < m) std::cout << "tache n° " << rank << ", jeton = " << jeton << "." << std::endl;
+	
 	MPI_Finalize ();
 	return EXIT_SUCCESS;
 }
