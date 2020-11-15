@@ -66,13 +66,13 @@ int main(int argc , char *argv [])
 	else if (rank == 6)
 	{
 		MPI_Recv (&jeton, 1, MPI_INT, 2, 6 , MPI_COMM_WORLD, &stats);
-		// source = 1 car 6 = 2^2 + 2
+		// source = 2 car 6 = 2^2 + 2
 		// tag = rank
 	}
 	else if (rank == 7)
 	{
 		MPI_Recv (&jeton, 1, MPI_INT, 3, 7 , MPI_COMM_WORLD, &stats);
-		// source = 1 car 7 = 2^2 + 3
+		// source = 3 car 7 = 2^2 + 3
 		// tag = rank
 	};
 
