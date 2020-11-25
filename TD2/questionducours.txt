@@ -1,0 +1,28 @@
+MPI_Comm_rank(comm, &myRank ) ;
+if (myRank == 0 ) 
+{
+	MPI_Ssend( sendbuf1, count, MPI_INT, 2, tag, comm);
+	MPI_Recv( recvbuf1, count, MPI_INT, 2, tag, comm, &status);
+} 
+else if ( myRank == 1 )
+{
+	MPI_Ssend( sendbuf2, count, MPI_INT, 2, tag, comm);
+}
+else if ( myRank == 2 )
+{
+	MPI_Recv( recvbuf1, count, MPI_INT, MPI_ANY_SOURCE, tag, comm, &status );
+	MPI_Ssend( sendbuf2, count, MPI_INT, 0, tag, comm);
+	MPI_Recv( recvbuf2, count, MPI_INT, MPI_ANY_SOURCE, tag, comm, &status );
+};
+
+1) scénario sans interblocage :
+
+Si la tache de rang 0 effectue son envoi en premier, 
+Alors la tache 2 le reçoit (ce qui libère la tache 0),
+La tache 0 est alors prete à recevoir l'envoi de la tache 2,
+Comme la réception a pu se faire, la tache 2 est disponible pour récupérer l'envoi de la tache 1
+
+2) scénario avec interblocage :
+
+Si la tache de rang 1 effectue son envoi en premier, la tache 2 la reçoit,
+Alors on se retrouve avec 2 envois synchrones entre les taches 0 et 2 qui s'attendent mutuellement
