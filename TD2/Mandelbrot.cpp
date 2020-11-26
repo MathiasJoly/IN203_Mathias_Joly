@@ -78,66 +78,33 @@ void computeMandelbrotSetRow( int W, int H, int maxIter, int num_ligne, int* pix
 	// centré en (0,0)
 	double scaleX = 3./(W-1);
 	double scaleY = 2.25/(H-1.);
-	//on stocke le numéro de ligne dans la ligne
-	pixels[0] = num_ligne ;
+	//
 	// On parcourt les pixels de l'espace image :
-	for ( int j = 1; j <= W; ++j ) 
+	for ( int j = 0; j < W; ++j ) 
 	{
 		Complex c{-2.+j*scaleX,-1.125+ num_ligne*scaleY};
 		pixels[j] = iterMandelbrot( maxIter, c );
 	}
 }
 
-std::vector<int> computeMandelbrotSet( int W, int H, int maxIter, int rank, int numtasks, MPI_Status* status )
+std::vector<int> computeMandelbrotSet( int W, int H, int maxIter, int rank, int numtasks )
 {
 	std::chrono::time_point<std::chrono::system_clock> start, end;
 	std::vector<int> matrice(W*H);
-	std::vector<int> ligne(W+1);
 	start = std::chrono::system_clock::now();
 
-	// On parcourt les pixels de l'espace image :
-	if (rank == 0)
-	{
-		int h = 0 ; // h = compteur de lignes
-		for (int i = 1; i < numtasks; ++i) // numtasks = nombre de precesseurs
-		{
-			MPI_Send(&h, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-			h += 1 ;
-		}
-		while (h < H)
-		{
-			MPI_Recv(&ligne[0], W, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, status);
-			int index = ligne[0] ;
-			for (int j = 0 ; j<W; j++)
-			{ matrice[index + j] = ligne[j]; };
-			MPI_Send(&h, 1, MPI_INT, status->MPI_SOURCE, 0, MPI_COMM_WORLD);
-			h += 1 ;
-		};
-		h = -1 ;
-		for (int i = 1; i < numtasks; ++i)
-		{	
-			MPI_Recv(&ligne[0], W, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, status);
-			int index = ligne[0] ;
-			for (int j = 0 ; j<W; j++)
-			{ matrice[index + j] = ligne[j]; };
-			// pour faire autant de reception de ligne que d'envoi de ligne
+	int imin_loc = (H/numtasks)*(numtasks-rank-1);
+	int imax_loc = (H/numtasks)*(numtasks-rank);
+	int Hloc = H/numtasks ; // tombe pile
+	std::vector<int> ligne(W*Hloc);
 
-			MPI_Send(&h, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-		};
-	}
-	else
+	// On parcourt les pixels de l'espace image :
+	for (int i = imin_loc; i < imax_loc ; ++i) 
 	{
-		int n = 0 ; // numéro de ligne
-		while (n != -1)
-		{
-			MPI_Recv(&n, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, status);
-			if (n >= 0)
-			{
-				computeMandelbrotSetRow( W, H, maxIter, n, &ligne[0]);
-				MPI_Send(&ligne[0], W, MPI_INT, 0, 0, MPI_COMM_WORLD);
-			};
-		};
+		computeMandelbrotSetRow( W, Hloc, maxIter, i, ligne.data() + W*(imax_loc-i-1));
 	};
+
+	MPI_Gather (ligne.data(), W*Hloc, MPI_INT, matrice.data(), W*Hloc, MPI_INT, 0, MPI_COMM_WORLD);
 
 	end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end-start;
@@ -170,8 +137,7 @@ int main (int argc, char* argv[])
 
 	MPI_Init(&argc ,&argv) ;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank ) ;
-	MPI_Comm_size(MPI_COMM_WORLD, &numtasks ) ;
-	MPI_Status status ;	
+	MPI_Comm_size(MPI_COMM_WORLD, &numtasks ) ;	
 
 	const int W = 800;
 	const int H = 600;
@@ -180,12 +146,11 @@ int main (int argc, char* argv[])
 	//const int maxIter = 16777216;
 	const int maxIter = 8*65536;
 
-	auto matrice = computeMandelbrotSet(W, H, maxIter, rank, numtasks, &status);
+	auto matrice = computeMandelbrotSet(W, H, maxIter, rank, numtasks);
 
 	if (rank == 0) // racine
 	{ savePicture("mandelbrot.tga", W, H, matrice, maxIter); };
-	
+
 	MPI_Finalize ( ) ;
 	return EXIT_SUCCESS;
  }
-    
