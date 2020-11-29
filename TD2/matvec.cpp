@@ -107,28 +107,28 @@ int main( int argc, char* argv[] )
     
     const int N = 120;
     const int Nloc = N / numtasks; // on prendra toujours numtasks diviseur de N
-    int first_col = Nloc*rank ;
+    int first_ligne = Nloc*rank ;
 
     Matrix A(N);
 
-    Matrix Aloc(N,Nloc);
-    for (int i = 0; i < N; ++i)
+    Matrix Aloc(Nloc,N);
+    for (int i = 0; i < Nloc; ++i)
     {
-        for (int j =0; j < Nloc; ++j)
+        for (int j =0; j < N; ++j)
         {
-            Aloc(i,j) = A(i, first_col + j) ;
+            Aloc(i,j) = A(first_ligne + i, j) ;
         };
     };
 
-    std::vector<double> uloc(Nloc);
-    for ( int i = 0; i < Nloc; ++i ) { uloc[i] = first_col + i + 1; };
+    std::vector<double> uloc(N);
+    for ( int i = 0; i < N; ++i ) { uloc[i] = i + 1; };
 
     std::vector<double> w = Aloc*uloc ;
     // pour verifier les resultats intermediaires :
     // std::cout << "tache " << rank << ", w = " << w << std::endl ; 
 
     std::vector<double> v(N) ;
-    MPI_Allreduce(w.data(), v.data(), N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allgather(w.data(), Nloc, MPI_DOUBLE, v.data(), Nloc, MPI_DOUBLE, MPI_COMM_WORLD);
 
     // pour verifier les resultats finaux : 
     // std::cout << "tache " << rank << ", v = " << v << std::endl ; 
