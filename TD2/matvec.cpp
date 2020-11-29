@@ -107,26 +107,32 @@ int main( int argc, char* argv[] )
     
     const int N = 120;
     const int Nloc = N / numtasks; // on prendra toujours numtasks diviseur de N
+    int first_col = Nloc*rank ;
 
     Matrix A(N);
-    std::vector<double> u(N);
-    std::vector<double> v(N);
 
-    for ( int i = 0; i < N; ++i ) { u[i] = i+1; };
-
-    for ( int i = 0; i < N; ++i )
+    Matrix Aloc(N,Nloc);
+    for (int i = 0; i < N; ++i)
     {
-    	if (i / Nloc == rank)
-	{ 
-	for (int j = 0; j < N; ++j ) 
-	    { v[i] += A(i,j)*u[j]; };
-	};
+        for (int j =0; j < Nloc; ++j)
+        {
+            Aloc(i,j) = A(i, first_col + j) ;
+        };
     };
 
-    for ( int j = 0; j < numtasks; ++j )
-    { MPI_Bcast(&v[Nloc*j], Nloc, MPI_DOUBLE, j, MPI_COMM_WORLD); }; 
-    std::cout << "A.u = " << v << std::endl;
+    std::vector<double> uloc(Nloc);
+    for ( int i = 0; i < Nloc; ++i ) { uloc[i] = first_col + i + 1; };
 
-    MPI_Finalize ( ) ;
+    std::vector<double> w = Aloc*uloc ;
+    // pour verifier les resultats intermediaires :
+    // std::cout << "tache " << rank << ", w = " << w << std::endl ; 
+
+    std::vector<double> v(N) ;
+    MPI_Allreduce(w.data(), v.data(), N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    // pour verifier les resultats finaux : 
+    // std::cout << "tache " << rank << ", v = " << v << std::endl ; 
+
+    MPI_Finalize () ;
     return EXIT_SUCCESS;
 }
