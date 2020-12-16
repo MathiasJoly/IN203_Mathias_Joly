@@ -35,10 +35,10 @@ TEMPS DE CALCUL = temps assemblage vecteurs + temps produits scalaires + temps s
 
       OMP_NUM_THREADS | TEMPS DE CALCUL | ACCELERATION
 
-      1         |      0.74       |      1     
-      2         |      0.72       |      1.03
-      4         |      0.82       |      0.90
-      8         |      0.82       |      0.90
+      1               |      0.74       |      1     
+      2               |      0.72       |      1.03
+      4               |      0.82       |      0.90
+      8               |      0.82       |      0.90
 
 L'accélération ne change presque pas, elle devient même inférieure à 1
 
@@ -46,10 +46,10 @@ La parallélisation ne fonctionne pas
 
       OMP_NUM_THREADS | TEMPS DE CALCUL | ACCELERATION
 
-      1         |      0.82       |      1    
-      2         |      0.84       |      0.98
-      4         |      0.81       |      1.01
-      8         |      0.83       |      0.99
+      1               |      0.82       |      1    
+      2               |      0.84       |      0.98
+      4               |      0.81       |      1.01
+      8               |      0.83       |      0.99
 
 L'accélération reste à 1
 
